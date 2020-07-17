@@ -6,6 +6,7 @@
 
 import edu.princeton.cs.algs4.Point2D;
 import edu.princeton.cs.algs4.RectHV;
+import edu.princeton.cs.algs4.StdDraw;
 
 import java.util.ArrayList;
 
@@ -67,9 +68,9 @@ public class KdTree {
 
         int cmp = 0;
         if (node.splitByX) {
-            cmp = Double.compare(node.p.x(), p.x());
+            cmp = Double.compare(p.x(), node.p.x());
         } else {
-            cmp = Double.compare(node.p.y(), p.y());
+            cmp = Double.compare(p.y(), node.p.y());
         }
 
         if (cmp <= 0) {
@@ -103,9 +104,9 @@ public class KdTree {
 
         int cmp = 0;
         if (node.splitByX) {
-            cmp = Double.compare(node.p.x(), p.x());
+            cmp = Double.compare(p.x(), node.p.x());
         } else {
-            cmp = Double.compare(node.p.y(), p.y());
+            cmp = Double.compare(p.y(), node.p.y());
         }
 
         if (cmp <= 0) {
@@ -117,7 +118,40 @@ public class KdTree {
 
     // draw all points to standard draw
     public void draw() {
+        draw(root, null, new RectHV(0, 0, 1, 1));
+    }
 
+    private void draw(Node node, Node parentNode, RectHV parentRect) {
+        if (node == null) {
+            return;
+        }
+
+        RectHV leftTreeRect, rightTreeRect;
+        if (node.splitByX) {
+            leftTreeRect = new RectHV(parentRect.xmin(), parentRect.ymin(), node.p.x(), parentRect.ymax());
+            rightTreeRect = new RectHV(node.p.x(), parentRect.ymin(), parentRect.xmax(), parentRect.ymax());
+        } else {
+            leftTreeRect = new RectHV(parentRect.xmin(), parentRect.ymin(), parentRect.xmax(), node.p.y());
+            rightTreeRect = new RectHV(parentRect.xmin(), node.p.y(), parentRect.xmax(), parentRect.ymax());
+        }
+
+        StdDraw.setPenColor(StdDraw.BLACK);
+        StdDraw.setPenRadius(0.01);
+        node.p.draw();
+
+        StdDraw.setPenRadius(0.005);
+        if (node.splitByX) {
+            StdDraw.setPenColor(StdDraw.BOOK_RED);
+        } else {
+            StdDraw.setPenColor(StdDraw.BOOK_BLUE);
+        }
+
+        Point2D rightMin = new Point2D(rightTreeRect.xmin(), rightTreeRect.ymin());
+        Point2D leftMax = new Point2D(leftTreeRect.xmax(), leftTreeRect.ymax());
+        rightMin.drawTo(leftMax);
+
+        draw(node.left, node, leftTreeRect);
+        draw(node.right, node, rightTreeRect);
     }
 
     // all points that are inside the rectangle (or on the boundary)
@@ -126,7 +160,43 @@ public class KdTree {
             throw new IllegalArgumentException();
         }
 
-        return new ArrayList<>();
+        return range(root, new RectHV(0, 0, 1, 1), rect);
+    }
+
+    private Iterable<Point2D> range(Node node, RectHV parentRect, RectHV rect) {
+        ArrayList<Point2D> result = new ArrayList<>();
+
+        if (node == null) {
+            return result;
+        }
+
+        if (rect.contains(node.p)) {
+            result.add(node.p);
+        }
+
+        RectHV leftTreeRect, rightTreeRect;
+        if (node.splitByX) {
+            leftTreeRect = new RectHV(parentRect.xmin(), parentRect.ymin(), node.p.x(), parentRect.ymax());
+            rightTreeRect = new RectHV(node.p.x(), parentRect.ymin(), parentRect.xmax(), parentRect.ymax());
+        } else {
+            leftTreeRect = new RectHV(parentRect.xmin(), parentRect.ymin(), parentRect.xmax(), node.p.y());
+            rightTreeRect = new RectHV(parentRect.xmin(), node.p.y(), parentRect.xmax(), parentRect.ymax());
+        }
+
+        if (leftTreeRect.intersects(rect)) {
+            Iterable<Point2D> leftResult = range(node.left, leftTreeRect, rect);
+            for (Point2D p : leftResult) {
+                result.add(p);
+            }
+        }
+        if (rightTreeRect.intersects(rect)) {
+            Iterable<Point2D> rightResult = range(node.right, rightTreeRect, rect);
+            for (Point2D p : rightResult) {
+                result.add(p);
+            }
+        }
+
+        return result;
     }
 
     // a nearest neighbor in the set to point p; null if the set is empty
@@ -134,7 +204,7 @@ public class KdTree {
         if (p == null) {
             throw new IllegalArgumentException();
         }
-        
+
         return null;
     }
 
@@ -142,27 +212,14 @@ public class KdTree {
     public static void main(String[] args) {
 
         KdTree kd = new KdTree();
-        // kd.insert(new Point2D(1, 1));
-        // kd.insert(new Point2D(1, 2));
 
-        kd.insert(new Point2D(1, 2));
-        kd.insert(new Point2D(1, 2));
-        kd.insert(new Point2D(3, 4));
-        kd.insert(new Point2D(3, 4));
-        kd.insert(new Point2D(5, 4));
-        kd.insert(new Point2D(5, 6));
-        kd.insert(new Point2D(10, 10));
-        kd.insert(new Point2D(-2, -3));
-        kd.insert(new Point2D(1, 2));
+        kd.insert(new Point2D(0.25, 0.25));
+        kd.insert(new Point2D(0.20, 0.70));
+        kd.insert(new Point2D(0.80, 0.30));
+        kd.insert(new Point2D(0.85, 0.85));
 
-        System.out.println(kd.size());
-        System.out.println(kd.contains(new Point2D(1, 2)));
-        System.out.println(kd.contains(new Point2D(3, 4)));
-        System.out.println(kd.contains(new Point2D(5, 4)));
-        System.out.println(kd.contains(new Point2D(-2, -4)));
-        System.out.println(kd.contains(new Point2D(-2, -3)));
-        System.out.println(kd.contains(new Point2D(10, 11)));
-        System.out.println(kd.contains(new Point2D(10, 10)));
+        System.out.println(kd.range(new RectHV(0.1, 0.1, 0.9, 0.9)));
+        System.out.println(kd.range(new RectHV(0.1, 0.1, 0.5, 0.9)));
 
     }
     
