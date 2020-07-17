@@ -118,10 +118,10 @@ public class KdTree {
 
     // draw all points to standard draw
     public void draw() {
-        draw(root, null, new RectHV(0, 0, 1, 1));
+        draw(root, new RectHV(0, 0, 1, 1));
     }
 
-    private void draw(Node node, Node parentNode, RectHV parentRect) {
+    private void draw(Node node, RectHV parentRect) {
         if (node == null) {
             return;
         }
@@ -150,8 +150,8 @@ public class KdTree {
         Point2D leftMax = new Point2D(leftTreeRect.xmax(), leftTreeRect.ymax());
         rightMin.drawTo(leftMax);
 
-        draw(node.left, node, leftTreeRect);
-        draw(node.right, node, rightTreeRect);
+        draw(node.left, leftTreeRect);
+        draw(node.right, rightTreeRect);
     }
 
     // all points that are inside the rectangle (or on the boundary)
@@ -205,7 +205,45 @@ public class KdTree {
             throw new IllegalArgumentException();
         }
 
-        return null;
+        return nearest(root, new RectHV(0, 0, 1, 1), p, null);
+    }
+
+    private Point2D nearest(Node node, RectHV parentRect, Point2D p, Point2D min) {
+        if (node == null) {
+            return min;
+        }
+
+        RectHV leftTreeRect, rightTreeRect;
+        if (node.splitByX) {
+            leftTreeRect = new RectHV(parentRect.xmin(), parentRect.ymin(), node.p.x(), parentRect.ymax());
+            rightTreeRect = new RectHV(node.p.x(), parentRect.ymin(), parentRect.xmax(), parentRect.ymax());
+        } else {
+            leftTreeRect = new RectHV(parentRect.xmin(), parentRect.ymin(), parentRect.xmax(), node.p.y());
+            rightTreeRect = new RectHV(parentRect.xmin(), node.p.y(), parentRect.xmax(), parentRect.ymax());
+        }
+
+        boolean leftCheckFirst = leftTreeRect.distanceSquaredTo(p) > rightTreeRect.distanceSquaredTo(p);
+        Node nodeToCheckFirst = leftCheckFirst ? node.left : node.right;
+        Node nodeToCheckSecond = !leftCheckFirst ? node.left : node.right;
+
+        RectHV rectToCheckFirst = leftCheckFirst ? leftTreeRect : rightTreeRect;
+        RectHV rectToCheckSecond = !leftCheckFirst ? leftTreeRect : rightTreeRect;
+
+        Point2D newMin;
+        if (min == null) {
+            newMin = node.p;
+        } else {
+            newMin = node.p.distanceSquaredTo(p) < min.distanceSquaredTo(p) ? node.p : min;
+        }
+
+        Point2D nl = nearest(nodeToCheckFirst, rectToCheckFirst, p, newMin);
+        Point2D nr = nearest(nodeToCheckSecond, rectToCheckSecond, p, newMin);
+
+        if (nl.distanceSquaredTo(p) < nr.distanceSquaredTo(p)) {
+            return nl;
+        } else {
+            return nr;
+        }
     }
 
     // unit testing of the methods (optional)
