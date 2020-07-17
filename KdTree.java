@@ -222,13 +222,6 @@ public class KdTree {
             rightTreeRect = new RectHV(parentRect.xmin(), node.p.y(), parentRect.xmax(), parentRect.ymax());
         }
 
-        boolean leftCheckFirst = leftTreeRect.distanceSquaredTo(p) > rightTreeRect.distanceSquaredTo(p);
-        Node nodeToCheckFirst = leftCheckFirst ? node.left : node.right;
-        Node nodeToCheckSecond = !leftCheckFirst ? node.left : node.right;
-
-        RectHV rectToCheckFirst = leftCheckFirst ? leftTreeRect : rightTreeRect;
-        RectHV rectToCheckSecond = !leftCheckFirst ? leftTreeRect : rightTreeRect;
-
         Point2D newMin;
         if (min == null) {
             newMin = node.p;
@@ -236,13 +229,18 @@ public class KdTree {
             newMin = node.p.distanceSquaredTo(p) < min.distanceSquaredTo(p) ? node.p : min;
         }
 
-        Point2D nl = nearest(nodeToCheckFirst, rectToCheckFirst, p, newMin);
-        Point2D nr = nearest(nodeToCheckSecond, rectToCheckSecond, p, newMin);
+        boolean leftCheckFirst = leftTreeRect.distanceSquaredTo(p) < rightTreeRect.distanceSquaredTo(p);
+        Node nodeToCheck1 = leftCheckFirst ? node.left : node.right;
+        Node nodeToCheck2 = !leftCheckFirst ? node.left : node.right;
 
-        if (nl.distanceSquaredTo(p) < nr.distanceSquaredTo(p)) {
-            return nl;
+        RectHV rectToCheck1 = leftCheckFirst ? leftTreeRect : rightTreeRect;
+        RectHV rectToCheck2 = !leftCheckFirst ? leftTreeRect : rightTreeRect;
+
+        Point2D nearestFirst = nearest(nodeToCheck1, rectToCheck1, p, newMin);
+        if (nearestFirst.distanceSquaredTo(p) < rectToCheck2.distanceSquaredTo(p)) {
+            return nearestFirst;
         } else {
-            return nr;
+            return nearest(nodeToCheck2, rectToCheck2, p, nearestFirst);
         }
     }
 
